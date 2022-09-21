@@ -55,7 +55,7 @@ void newMsg(FB_msg& msg) {
   uint32_t tID = msg.userID.toInt();
   Serial.println("message: ");
   Serial.println(msg.text);
-Serial.print(msgTTLsec,DEC);Serial.println();
+
   //Проверяем, что пользователь в списке пользователей или создатель
   for (byte i = 0; i < user.totalUsers; i++) {
     userEntry tmp;

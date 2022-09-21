@@ -38,7 +38,7 @@
 #define HISTORY_ID 3
 #define TOTAL_USER_ITEMS 3
 
-User user(2);
+User user(64);
 extern uint16_t msgTTLsec;
 
 //Заголовки фукнций для работы с меню, сами функции ниже
@@ -146,14 +146,14 @@ void Menu::initMenu() {
   memcpy((void*)menuItems, (void*)iMenuPointer, iMenuSize * sizeof(menuItem));  //копируем в выделенный размер элементы меню
   menuSize = iMenuSize;                                                         //задаем число элементов в меню равным первоначальному значению
   user.initUser();
-  if (iMenuSize > 24) {              //Если это меню администратора, загружаем в меню пользователей из EEPROM, Обновляем msgTTL
-    char itemName[16] = "msgTTL [ \0";  //обновляем Значение msgTTL
-    EEPROM.begin(2);
-    EEPROM.get(0, msgTTLsec);
-    EEPROM.end();
-    itoa(msgTTLsec, itemName + 8, 10);
-    strcat(itemName, "]");
-    strcpy((menuItems + 8)->itemName, itemName);
+  if (iMenuSize >= TOTAL_ADMIN_ITEMS) {              //Если это меню администратора, загружаем в меню пользователей из EEPROM, Обновляем msgTTL
+   // char itemName[16] = "msgTTL [ \0";  //обновляем Значение msgTTL
+   // EEPROM.begin(4);
+   // EEPROM.get(0, msgTTLsec);
+   // EEPROM.end();
+  // itoa(msgTTLsec, itemName + 8, 10);
+  //  strcat(itemName, "]");
+  //  strcpy((menuItems + 8)->itemName, itemName);
     updateUsers();
   }
 }
@@ -314,7 +314,7 @@ void Menu::updateUsers() {
 Menu* botMenu;  // = new Menu(adminMenu, 25);
 
 void addUser() {
-  static char* tmpName;
+  static char tmpName[16];
   static uint32_t tID;
   bool admin;
   if (user.totalUsers >= 10) {
@@ -344,9 +344,8 @@ void addUser() {
           bot.sendMessage(F("от 1 до 16 лат. символов:"));
           break;
         }
-        tmpName = (char*)malloc(nameLength + 1);
         String msgText = callMeBack.botMessage->text;
-        msgText.toCharArray(tmpName, nameLength + 1);
+        msgText.toCharArray(tmpName, 16);
         bot.sendMessage(F("Введите telegramID"));
         callMeBack.count++;
       }
@@ -361,11 +360,11 @@ void addUser() {
         } else {
           path += F("\nОшибка");
         }
-        free(tmpName);
+
         callMeBack.callMe = 0;
         callMeBack.count = 0;
         callMeBack.call = 0;
-        delete botMenu->menuItems;                 //удаляем старое меню
+        free(botMenu->menuItems);                 //удаляем старое меню
         botMenu->initMenu();                       //перезапускаем меню
         menuText = botMenu->checkCommand(F(" "));  //обновляем строку меню
         bot.showMenuText(path, menuText);
@@ -409,7 +408,7 @@ void msgTTL() {
         EEPROM.put(0, msgTTLsec);
         EEPROM.end();
         //перерисовываем меню
-        delete botMenu->menuItems;  //удаляем старое меню
+        free(botMenu->menuItems);  //удаляем старое меню
         botMenu->initMenu();  //перезапускаем меню
         String menuText = botMenu->checkCommand(F(" "));
         String path = String(botMenu->navStr); 
@@ -449,7 +448,7 @@ void hardReset() {
           }
           EEPROM.end();
           path += F("\nEEPROM очищен");
-          delete botMenu->menuItems;  //удаляем старое меню
+          free(botMenu->menuItems);  //удаляем старое меню
           botMenu->initMenu();        //запускаем новое меню
         }
         callMeBack.callMe = 0;
@@ -597,7 +596,7 @@ void blockUser() {
   user.selectUser(tID);
   user.parameters.enabled = !user.parameters.enabled;
   user.saveEntry();
-  delete botMenu->menuItems;                 //удаляем старое меню
+  free(botMenu->menuItems);                 //удаляем старое меню
   botMenu->initMenu();                       //запускаем новое меню
   menuText = botMenu->checkCommand(F(" "));  //выходим из "команды" на уровень вверх
   String path = String(botMenu->navStr);
@@ -632,7 +631,7 @@ void removeUser() {
           //удалить
           user.del();
           user.initUser();
-          delete botMenu->menuItems;  //удаляем старое меню
+          free(botMenu->menuItems);  //удаляем старое меню
           botMenu->initMenu();        //Обновляем меню
           menuText = botMenu->checkCommand(F("UP"));
           path = String(botMenu->navStr);

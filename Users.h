@@ -65,6 +65,7 @@ bool User::selectUser(const uint32_t &telegramID)
   else {
     EEPROM.get(_userAddr, parameters);
     userSelected = 1;
+    EEPROM.end();
     return 1;
   }
 
@@ -80,13 +81,14 @@ bool User::add(char* userName, const uint32_t &telegramID, bool admin)
     EEPROM.get(Pos, userBuf);
     if (telegramID == userBuf.telegramID || !strncmp(userBuf.userName, userName, sizeof(userBuf.userName)))
     {
+      EEPROM.end();
       return 0; //Если совпала телега или имя, возвращаем 0
     }
   }
   //Добавляем:
-  userEntry newUser = {0xBA, admin, 1, 0, 0, telegramID};
-  newUser.userName[sizeof(newUser.userName) - 1] = '\n';
-  strcpy(newUser.userName, userName);
+  userEntry newUser = {0xBA, admin, 1, 0, 0, telegramID, "", 0xAB};
+  strncpy(newUser.userName, userName,16);
+  newUser.userName[15] = '\0';
   EEPROM.put(_startAddr+totalUsers * sizeof(userEntry), newUser);
   EEPROM.end();
   initUser();   //обновляем число пользователей
@@ -185,6 +187,7 @@ bool User::getUserAddr(const uint32_t &telegramID)//если пользоват�
     if (telegramID == userBuf.telegramID)
     {
       _userAddr =  Pos;
+      EEPROM.end();
       return 1;
     }
   }
@@ -208,10 +211,10 @@ void User::getUserCount() //Сколько пользователей у нас 
     else
       {
       if (found) {
-        totalUsers = addr / sizeof(userEntry);  //пишем число найденных записей
+        totalUsers = (addr-_startAddr) / sizeof(userEntry);  //пишем число найденных записей
+        EEPROM.end();
         return;
       }
-     return;
     }
   }
   EEPROM.end();
