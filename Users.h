@@ -76,7 +76,7 @@ bool User::add(char* userName, const uint32_t &telegramID, bool admin)
   //проверяем, есть ли пользователь с указанным именем или таким же телеграм
   EEPROM.begin(EEPROM_SIZE);
   userEntry userBuf;
-  for (uint16_t Pos = _startAddr; Pos < totalUsers * sizeof(userEntry); Pos += sizeof(userEntry))
+  for (uint16_t Pos = _startAddr; Pos <  _startAddr + totalUsers * sizeof(userEntry); Pos += sizeof(userEntry))
   {
     EEPROM.get(Pos, userBuf);
     if (telegramID == userBuf.telegramID || !strncmp(userBuf.userName, userName, sizeof(userBuf.userName)))
@@ -181,7 +181,7 @@ bool User::getUserAddr(const uint32_t &telegramID)//если пользоват�
 {
   userEntry userBuf;
   EEPROM.begin(EEPROM_SIZE);
-  for (uint16_t Pos = _startAddr; Pos < totalUsers * sizeof(userEntry); Pos += sizeof(userEntry))
+  for (uint16_t Pos = _startAddr; Pos <  _startAddr + totalUsers * sizeof(userEntry); Pos += sizeof(userEntry))
   {
     EEPROM.get(Pos, userBuf);
     if (telegramID == userBuf.telegramID)
@@ -229,7 +229,7 @@ void User::defragEeprom() //дефрагментирует EEPROM после у�
   for (byte i = 0; i < size; i++) {
     nullmas[i] = 0;
   }
-  for (uint16_t addr = _userAddr + size; addr < totalUsers * size; addr += size)
+  for (uint16_t addr = _userAddr + size; addr < _startAddr + totalUsers * size; addr += size)
   {
     EEPROM.get(addr, temp); //считываем данные сразу за дыркой
     if (temp.startSign == 0xBA && temp.endSign == 0xAB) //если в них структура

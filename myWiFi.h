@@ -81,7 +81,7 @@ bool myWifi::connect() {
 bool myWifi::saveNew(auth &data) {
   if (WiFi.isConnected()) { WiFi.disconnect(); }
   if (tryThis(data)) {
-    EEPROM.begin(_startAddr+32);
+    EEPROM.begin(EEPROM_SIZE);
     EEPROM.put(_startAddr, data);
     EEPROM.end();
     return 1;

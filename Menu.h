@@ -1,6 +1,6 @@
 #pragma once
 #include <Arduino.h>
-
+#include "myWiFi.h"
 
 //MENU ID'S
 #define ROOT_MENU 0
@@ -38,7 +38,7 @@
 #define HISTORY_ID 3
 #define TOTAL_USER_ITEMS 3
 
-User user(64);
+User user(2+32);
 extern uint16_t msgTTLsec;
 
 //Заголовки фукнций для работы с меню, сами функции ниже
@@ -146,14 +146,14 @@ void Menu::initMenu() {
   memcpy((void*)menuItems, (void*)iMenuPointer, iMenuSize * sizeof(menuItem));  //копируем в выделенный размер элементы меню
   menuSize = iMenuSize;                                                         //задаем число элементов в меню равным первоначальному значению
   user.initUser();
-  if (iMenuSize >= TOTAL_ADMIN_ITEMS) {              //Если это меню администратора, загружаем в меню пользователей из EEPROM, Обновляем msgTTL
-   // char itemName[16] = "msgTTL [ \0";  //обновляем Значение msgTTL
-   // EEPROM.begin(4);
-   // EEPROM.get(0, msgTTLsec);
-   // EEPROM.end();
-  // itoa(msgTTLsec, itemName + 8, 10);
-  //  strcat(itemName, "]");
-  //  strcpy((menuItems + 8)->itemName, itemName);
+  if (iMenuSize >= TOTAL_ADMIN_ITEMS) {  //Если это меню администратора, загружаем в меню пользователей из EEPROM, Обновляем msgTTL
+    char itemName[16] = "msgTTL [ \0";   //обновляем Значение msgTTL
+    EEPROM.begin(4);
+    EEPROM.get(0, msgTTLsec);
+    EEPROM.end();
+    itoa(msgTTLsec, itemName + 8, 10);
+    strcat(itemName, "]");
+    strcpy((menuItems + 8)->itemName, itemName);
     updateUsers();
   }
 }
@@ -364,7 +364,7 @@ void addUser() {
         callMeBack.callMe = 0;
         callMeBack.count = 0;
         callMeBack.call = 0;
-        free(botMenu->menuItems);                 //удаляем старое меню
+        free(botMenu->menuItems);                  //удаляем старое меню
         botMenu->initMenu();                       //перезапускаем меню
         menuText = botMenu->checkCommand(F(" "));  //обновляем строку меню
         bot.showMenuText(path, menuText);
@@ -383,6 +383,68 @@ void getLog() {
 }
 
 void setWifi() {
+  if (!callMeBack.callMe) {
+    callMeBack.callMe = true;
+  }
+  callMeBack.call = setWifi;
+
+  switch (callMeBack.count) {
+    static auth _auth;
+    case 0:
+      {
+        String path = "Текущее подключение: " + WiFi.SSID();
+        path += "\nВведите новый SSID или 0 для отмены";
+        bot.closeMenuText(path);
+        callMeBack.count++;
+      }
+      break;
+    case 1:
+      {
+        String msg = callMeBack.botMessage->text;
+        msg.trim();
+        if ((msg) == "0") {
+          String menuText = botMenu->checkCommand(F(" "));
+          String path(botMenu->navStr);
+          callMeBack.callMe = 0;
+          callMeBack.count = 0;
+          bot.showMenuText(path, menuText);
+          return;
+        }
+        msg.toCharArray(_auth.ssid, 16);
+        bot.sendMessage(F("Введите пароль или 0 для отмены"));
+        callMeBack.count++;
+      }
+      break;
+    case 2:
+      {
+        String menuText = botMenu->checkCommand(F(" "));
+        String path(botMenu->navStr);
+        String msg = callMeBack.botMessage->text;
+        msg.trim();
+        if (msg == "0") {
+          callMeBack.callMe = 0;
+          callMeBack.count = 0;
+          bot.showMenuText(path, menuText);
+          return;
+        }
+        msg.toCharArray(_auth.psw, 16);
+        bot.sendMessage(F("Пробую подключиться к ") + String(_auth.ssid));
+        if (connection.saveNew(_auth)) {
+          path += F("\nДанные подключения обновлены");
+        } else {
+          path += F("\nНе удалось подключиться к сети");
+        }
+        bot.showMenuText(path, menuText);
+        callMeBack.callMe = 0;
+        callMeBack.count = 0;
+      }
+      break;
+    default:
+      bot.sendMessage(F("Исключение в setWifi()"));
+      callMeBack.callMe = 0;
+      callMeBack.count = 0;
+      break;
+  }
 }
 
 void msgTTL() {
@@ -404,15 +466,15 @@ void msgTTL() {
         msgTTLsec = (callMeBack.botMessage->text).toInt();
         if (msgTTLsec < 10 && msgTTLsec != 0) msgTTLsec = 10;
         //пишем
-        EEPROM.begin(2);
+        EEPROM.begin(EEPROM_SIZE);
         EEPROM.put(0, msgTTLsec);
         EEPROM.end();
         //перерисовываем меню
         free(botMenu->menuItems);  //удаляем старое меню
-        botMenu->initMenu();  //перезапускаем меню
+        botMenu->initMenu();       //перезапускаем меню
         String menuText = botMenu->checkCommand(F(" "));
-        String path = String(botMenu->navStr); 
-        bot.showMenuText(path, menuText); //Рисуем новое меню
+        String path = String(botMenu->navStr);
+        bot.showMenuText(path, menuText);  //Рисуем новое меню
         callMeBack.callMe = 0;
         callMeBack.count = 0;
       }
@@ -449,7 +511,7 @@ void hardReset() {
           EEPROM.end();
           path += F("\nEEPROM очищен");
           free(botMenu->menuItems);  //удаляем старое меню
-          botMenu->initMenu();        //запускаем новое меню
+          botMenu->initMenu();       //запускаем новое меню
         }
         callMeBack.callMe = 0;
         callMeBack.count = 0;
@@ -596,7 +658,7 @@ void blockUser() {
   user.selectUser(tID);
   user.parameters.enabled = !user.parameters.enabled;
   user.saveEntry();
-  free(botMenu->menuItems);                 //удаляем старое меню
+  free(botMenu->menuItems);                  //удаляем старое меню
   botMenu->initMenu();                       //запускаем новое меню
   menuText = botMenu->checkCommand(F(" "));  //выходим из "команды" на уровень вверх
   String path = String(botMenu->navStr);
@@ -632,7 +694,7 @@ void removeUser() {
           user.del();
           user.initUser();
           free(botMenu->menuItems);  //удаляем старое меню
-          botMenu->initMenu();        //Обновляем меню
+          botMenu->initMenu();       //Обновляем меню
           menuText = botMenu->checkCommand(F("UP"));
           path = String(botMenu->navStr);
         } else {

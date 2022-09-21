@@ -4,12 +4,13 @@
 #include <WiFiUdp.h>
 #include <FastBot.h>
 
+
 FastBot bot("5732234013:AAHXECLY-toweps91RR3KBM7YFWHZ40YA0Q");  // с указанием токена
 uint16_t msgTTLsec = 0;  //время жизни сообщения, сек. Сообщение, время отправки которых превышает текущее время на указаннуювеличину, игнорируются
 
 #include "Users.h"
 #include "Menu.h"
-
+#include "myWiFi.h"
 
 Menu* aMenu = new Menu(adminMenu, TOTAL_ADMIN_ITEMS);
 Menu* uMenu = new Menu(userMenu, TOTAL_USER_ITEMS);
@@ -18,13 +19,8 @@ void setup() {
   WiFiUDP ntpUDP;                   //udp объект для easyNTPClient
   EasyNTPClient ntpClient(ntpUDP);  //Объявляем ntpClient класса EasyNTPClient
   Serial.begin(115200);
-  Serial.print("Connecting to WiFi");
-  WiFi.begin("Marianna", "marianna", 6);
-  while (WiFi.status() != WL_CONNECTED) {
-    delay(100);
-    Serial.print(".");
-  }
-  Serial.println(" Connected!");
+  connection.connect(); //подключаемся к сети
+
   Serial.println("Obtaining time from ntp");
   uint32_t time = ntpClient.getUnixTime();
   if (time) {
@@ -80,7 +76,7 @@ void newMsg(FB_msg& msg) {
   uint32_t time = bot.getUnix();
   uint16_t shift = time - msg.unix;
   if (time - msg.unix >= msgTTLsec && msgTTLsec != 0) {
-    bot.sendMessage("Сообщение устарело");
+    bot.sendMessage(F("Сообщение устарело. Отправьте запрос повторно"));
     return;
   }
 
