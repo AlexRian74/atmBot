@@ -43,6 +43,7 @@ void setup() {
 void loop() {
   bot.tick();
   delay(1000);
+  connection.keepAlive();
 }
 
 void newMsg(FB_msg& msg) {

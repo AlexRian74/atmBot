@@ -166,8 +166,8 @@ String Menu::checkCommand(const String& command) {
   byte currentID = 0;
   String response;
   bool cmdFound = 0;
-  char cmd[16];  // макс. длина menuItem.itemName  + 1
-  command.toCharArray(cmd, command.length() + 1 > 16 ? 16 : command.length() + 1);
+  char cmd[16];  
+  command.toCharArray(cmd, 16);
   for (byte i = 0; i < menuSize; i++)  //Ищем ID переданной команды
   {
     //UP command - выход из удаляемого элемента меню
@@ -250,7 +250,7 @@ String Menu::checkCommand(const String& command) {
   lastCmdID = 0;  // Переменная содержит номер команды сразу после поступления команды,в остальных случаях 0
 
   grandParentID = menuItems[parentID].parentID;
-  if (menuItems[currentID].cmdFunc == NULL)  //текущий ID меню - папка
+  if (menuItems[currentID].cmdFunc == 0)  //текущий ID меню - папка
   {
     parentID = currentID;  //Запоминаем ее как родителя для следующей команды
   } else {                 //Если текущий ID не папка, значит команда. у нее нет детей, но есть родитель, который будет "grandParentID"
@@ -283,17 +283,18 @@ void Menu::updateUsers() {
   menuItem tmpAdmItems[] = { { "", SERVICE_ADMINISTRATORS_ID, 0 }, { "Remove", 0, removeUser } };
   menuItem* pointer;
   byte items;  //количество добавляемых в меню элементов
+
   for (byte i = 0; i < user.totalUsers; i++) {
     user.getByNum(tmpUser, i);
     //Если пользователь -  администратор
     if (tmpUser.admin) {
       pointer = tmpAdmItems;
-      strncpy(pointer->itemName, tmpUser.userName, strlen(tmpUser.userName) + 1);  //копируем имя пользователя
+      strncpy(pointer->itemName, tmpUser.userName, 16);  //копируем имя пользователя
       (pointer + 1)->parentID = menuSize;
       items = 2;  //сколько элементов в меню администратора
     } else {      //Для обычного пользователя
       pointer = tmpItems;
-      strncpy(pointer->itemName, tmpUser.userName, strlen(tmpUser.userName) + 1);  //копируем имя пользователя
+      strncpy(pointer->itemName, tmpUser.userName, 16);  //копируем имя пользователя
       //Обновляем родителя для детей пользователя, дети начинаются со второго элемента в массиве (j=1)
       for (byte j = 1; j < sizeof(tmpItems) / sizeof(menuItem); j++) {
         (pointer + j)->parentID = menuSize;
@@ -593,7 +594,7 @@ void changeBalance() {
         int32_t increment = (callMeBack.botMessage->text).toInt();
         path = String(botMenu->navStr);
         if (increment < -32500 || increment > 32500 || (increment + user.parameters.balance) < 0 || (increment + user.parameters.balance) > 65500) {
-          path += F("\nОшибка.");
+          path += F("\nОшибка диапазона.");
           path += F("\nБаланс: ") + String(user.parameters.balance) + F("\nЛимит: ") + String(user.parameters.limit);
           bot.showMenuText(path, menuText);
           callMeBack.callMe = 0;

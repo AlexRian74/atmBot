@@ -63,6 +63,7 @@ bool User::selectUser(const uint32_t &telegramID)
     return 0; //если адрес пользователя не найден, выходим
   }
   else {
+    EEPROM.begin(EEPROM_SIZE);
     EEPROM.get(_userAddr, parameters);
     userSelected = 1;
     EEPROM.end();
@@ -159,6 +160,7 @@ bool User::getByNum(userEntry &tmp, const uint16_t &i)
   EEPROM.begin(EEPROM_SIZE);
   EEPROM.get(_startAddr + i * sizeof(userEntry), tmp);
   EEPROM.end();
+  //Serial.printf("i=%d userAddress= %d tID=%d name=%s\n",i,_startAddr + i * sizeof(userEntry),tmp.telegramID,tmp.userName);
   return 1;
 
 }
